@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Aventuras en Tilisarao</title>
+    <style>
+        /* CSS styles remain unchanged */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #1a1a1a;
+            color: white;
+            overflow: hidden;
+        }
+
+        .game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+            overflow: hidden;
+        }
+
+        .player {
+            width: 50px;
+            height: 50px;
+            position: absolute;
+            bottom: 20%;
+            left: 50px;
+            background-color: #FF5733;
+            border: 3px solid #C70039;
+            border-radius: 50%;
+            z-index: 2;
+            transform-origin: center bottom;
+            transition: transform 0.1s;
+        }
+
+        .player.jumping {
+            animation: jumpWithSquash 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .player.squash {
+            transform: scale(1.2, 0.8);
+        }
+
+        .player.stretch {
+            transform: scale(0.8, 1.2);
+        }
+
+        @keyframes jumpWithSquash {
+            0% { 
+                bottom: 20%;
+                transform: scale(1.2, 0.8);
+            }
+            15% { 
+                transform: scale(0.8, 1.2);
+            }
+            50% { 
+                bottom: 70%;
+                transform: scale(1, 1);
+            }
+            80% {
+                transform: scale(0.9, 1.1);
+            }
+            100% { 
+                bottom: 20%;
+                transform: scale(1.2, 0.8);
+            }
+        }
+
+        .obstacle {
+            width: 30px;
+            height: 80px;
+            position: absolute;
+            bottom: 20%;
+            background: linear-gradient(to bottom, #4a9c59, #2d5a34);
+            border: 3px solid #1a3320;
+            border-radius: 5px;
+        }
+
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 20%;
+            background: linear-gradient(to bottom, #8B4513, #654321);
+            border-top: 5px solid #3d2914;
+        }
+
+        .cloud {
+            position: absolute;
+            background: white;
+            border-radius: 20px;
+            opacity: 0.8;
+            animation: moveCloud linear infinite;
+        }
+
+        @keyframes moveCloud {
+            from { left: 100%; }
+            to { left: -100px; }
+        }
+
+        .score-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #FFD700;
+        }
+
+        .start-screen, .game-over {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 30px 50px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 100;
+            border: 3px solid #FFD700;
+        }
+
+        .game-over {
+            display: none;
+        }
+
+        .start-screen h2, .game-over h2 {
+            color: #FFD700;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 20px;
+            background: #4CAF50;
+            border: none;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+
+        .instructions {
+            margin: 20px 0;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        .title {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 36px;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .mountains {
+            position: absolute;
+            bottom: 20%;
+            width: 100%;
+            height: 100px;
+            background: repeating-linear-gradient(
+                135deg,
+                #2d5a34 0px,
+                #2d5a34 20px,
+                #4a9c59 20px,
+                #4a9c59 40px
+            );
+            opacity: 0.5;
+        }
+
+        .audio-controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 10px;
+            z-index: 100;
+        }
+
+        .audio-controls button {
+            padding: 8px 15px;
+            margin: 0 5px;
+            font-size: 14px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .audio-controls button.muted {
+            background: #f44336;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="title">Aventuras en Tilisarao</h1>
+        <div class="score-container">Puntos: <span id="score">0</span></div>
+        <div class="mountains"></div>
+        <div class="ground"></div>
+        <div class="player" id="player"></div>
+
+        <div class="audio-controls">
+            <button onclick="toggleMusic()" id="musicToggle">🎵 Música</button>
+            <button onclick="toggleSound()" id="soundToggle">🔊 Efectos</button>
+        </div>
+
+        <div class="start-screen" id="startScreen">
+            <h2>¡Bienvenido a Tilisarao!</h2>
+            <div class="instructions">
+                <p>Ayuda a nuestro héroe a superar los obstáculos</p>
+                <p>Presiona ESPACIO para saltar</p>
+                <p>En móviles, toca la pantalla</p>
+            </div>
+            <button onclick="startGame()">¡Comenzar!</button>
+        </div>
+
+        <div class="game-over" id="gameOver">
+            <h2>¡Juego Terminado!</h2>
+            <p>Puntuación final: <span id="finalScore">0</span></p>
+            <button onclick="resetGame()">Jugar de nuevo</button>
+        </div>
+    </div>
+
+    <script>
+        // Audio configuration
+        const audioSources = {
+            backgroundMusic: 'https://assets.mixkit.co/music/preview/mixkit-game-level-music-689.mp3',
+            jump: 'https://assets.mixkit.co/sfx/preview/mixkit-quick-jump-arcade-game-239.mp3',
+            point: 'https://assets.mixkit.co/sfx/preview/mixkit-arcade-score-interface-217.mp3',
+            gameOver: 'https://assets.mixkit.co/sfx/preview/mixkit-failure-arcade-alert-notification-240.mp3'
+        };
+
+        const audioElements = {
+            backgroundMusic: new Audio(audioSources.backgroundMusic),
+            jump: new Audio(audioSources.jump),
+            point: new Audio(audioSources.point),
+            gameOver: new Audio(audioSources.gameOver)
+        };
+
+        // Audio controls
+        let isMusicMuted = false;
+        let isSoundMuted = false;
+
+        function toggleMusic() {
+            isMusicMuted = !isMusicMuted;
+            audioElements.backgroundMusic.muted = isMusicMuted;
+            const button = document.getElementById('musicToggle');
+            button.textContent = isMusicMuted ? "🔇 Música" : "🎵 Música";
+        }
+
+        function toggleSound() {
+            isSoundMuted = !isSoundMuted;
+            Object.keys(audioElements).forEach(key => {
+                if (key !== 'backgroundMusic') {
+                    audioElements[key].muted = isSoundMuted;
+                }
+            });
+            const button = document.getElementById('soundToggle');
+            button.textContent = isSoundMuted ? "🔇 Efectos" : "🔊 Efectos";
+        }
+
+        function playSound(soundName) {
+            if (!isSoundMuted) {
+                audioElements[soundName].currentTime = 0;
+                audioElements[soundName].play().catch(error => {
+                    console.log(`Error playing ${soundName}:`, error);
+                });
+            }
+        }
+
+        function playMusic() {
+            if (!isMusicMuted) {
+                audioElements.backgroundMusic.currentTime = 0;
+                audioElements.backgroundMusic.play().catch(error => {
+                    console.log('Error playing background music:', error);
+                });
+            }
+        }
+
+        function stopMusic() {
+            audioElements.backgroundMusic.pause();
+            audioElements.backgroundMusic.currentTime = 0;
+        }
+
+        // Game variables
+        const player = document.getElementById('player');
+        const gameContainer = document.querySelector('.game-container');
+        const scoreElement = document.getElementById('score');
+        const gameOverScreen = document.getElementById('gameOver');
+        const startScreen = document.getElementById('startScreen');
+        const finalScoreElement = document.getElementById('finalScore');
+
+        let isJumping = false;
+        let score = 0;
+        let gameIsOver = false;
+        let obstacleInterval;
+        let gameStarted = false;
+        let cloudInterval;
+
+        // Game functions
+        function createCloud() {
+            const cloud = document.createElement('div');
+            cloud.classList.add('cloud');
+            cloud.style.top = Math.random() * 30 + '%';
+            cloud.style.width = Math.random() * 100 + 50 + 'px';
+            cloud.style.height = Math.random() * 30 + 20 + 'px';
+            cloud.style.animationDuration = Math.random() * 10 + 10 + 's';
+            gameContainer.appendChild(cloud);
+
+            setTimeout(() => {
+                gameContainer.removeChild(cloud);
+            }, 20000);
+        }
+
+        function jump() {
+            if (!isJumping && !gameIsOver && gameStarted) {
+                isJumping = true;
+                player.classList.add('squash');
+                playSound('jump');
+
+                setTimeout(() => {
+                    player.classList.remove('squash');
+                    player.classList.add('jumping');
+
+                    setTimeout(() => {
+                        player.classList.add('stretch');
+                    }, 400);
+
+                    setTimeout(() => {
+                        player.classList.remove('jumping', 'stretch');
+                        isJumping = false;
+
+                        player.classList.add('squash');
+                        setTimeout(() => {
+                            player.classList.remove('squash');
+                        }, 100);
+                    }, 800);
+                }, 100);
+            }
+        }
+
+        function createObstacle() {
+            if (gameIsOver || !gameStarted) return;
+
+            const obstacle = document.createElement('div');
+            obstacle.classList.add('obstacle');
+            obstacle.style.left = '100%';
+            gameContainer.appendChild(obstacle);
+
+            let obstaclePosition = 100;
+            const moveObstacle = setInterval(() => {
+                if (obstaclePosition < -10) {
+                    clearInterval(moveObstacle);
+                    gameContainer.removeChild(obstacle);
+                    score++;
+                    scoreElement.textContent = score;
+                    playSound('point');
+                } else if (
+                    obstaclePosition > 0 && 
+                    obstaclePosition < 50 && 
+                    !isJumping
+                ) {
+                    if (checkCollision(player, obstacle)) {
+                        clearInterval(moveObstacle);
+                        gameOver();
+                        return;
+                    }
+                }
+
+                obstaclePosition -= 2;
+                obstacle.style.left = obstaclePosition + '%';
+            }, 20);
+        }
+
+        function checkCollision(player, obstacle) {
+            const playerRect = player.getBoundingClientRect();
+            const obstacleRect = obstacle.getBoundingClientRect();
+
+            return !(
+                playerRect.bottom < obstacleRect.top || 
+                playerRect.top > obstacleRect.bottom || 
+                playerRect.right < obstacleRect.left || 
+                playerRect.left > obstacleRect.right
+            );
+        }
+
+        function gameOver() {
+            gameIsOver = true;
+            gameStarted = false;
+            clearInterval(obstacleInterval);
+            clearInterval(cloudInterval);
+            finalScoreElement.textContent = score;
+            gameOverScreen.style.display = 'block';
+            
+            stopMusic();
+            playSound('gameOver');
+        }
+
+        function resetGame() {
+            gameIsOver = false;
+            score = 0;
+            scoreElement.textContent = '0';
+            gameOverScreen.style.display = 'none';
+            
+            const obstacles = document.querySelectorAll('.obstacle');
+            obstacles.forEach(obstacle => obstacle.remove());
+            
+            const clouds = document.querySelectorAll('.cloud');
+            clouds.forEach(cloud => cloud.remove());
+            
+            startGame();
+        }
+
+        function startGame() {
+            startScreen.style.display = 'none';
+            gameStarted = true;
+            obstacleInterval = setInterval(createObstacle, 2000);
+            cloudInterval = setInterval(createCloud, 3000);
+            createCloud();
+            playMusic();
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'Space') {
+                if (!gameStarted && !gameIsOver) {
+                    startGame();
+                }
+                jump();
+                event.preventDefault();
+            }
+        });
+
+        document.addEventListener('touchstart', (event) => {
+            if (!gameStarted && !gameIsOver) {
+                startGame();
+            }
+            jump();
+            event.preventDefault();
+        });
+
+        startScreen.style.display = 'block';
+    </script>
+</body>
+</html>
