@@ -346,9 +346,9 @@
         let cloudInterval;
 
         // Obstacle speed configuration
-        let baseObstacleSpeed = 2;
-        let obstacleSpeedIncrement = 0.2;
-        let maxObstacleSpeed = 8;
+        let baseObstacleSpeed = 1.5; // Reducida de 2 a 1.5
+        let obstacleSpeedIncrement = 0.1; // Reducida de 0.2 a 0.1
+        let maxObstacleSpeed = 4; // Reducida de 8 a 4
 
         function calculateObstacleSpeed() {
             return Math.min(baseObstacleSpeed + (score * obstacleSpeedIncrement), maxObstacleSpeed);
@@ -413,7 +413,7 @@
                 }
 
                 const currentSpeed = calculateObstacleSpeed();
-                obstaclePosition -= currentSpeed;
+                obstaclePosition -= currentSpeed * 0.5; // Reducimos el incremento de posición para un movimiento más suave
 
                 if (obstaclePosition < -10) {
                     clearInterval(moveObstacle);
@@ -423,20 +423,19 @@
                     score++;
                     scoreElement.textContent = score;
                     playSound('point');
-                } else if (
-                    obstaclePosition > 0 && 
-                    obstaclePosition < 50 && 
-                    !isJumping
-                ) {
-                    if (checkCollision(player, obstacle)) {
-                        clearInterval(moveObstacle);
-                        gameOver();
-                        return;
+                } else {
+                    // Comprobamos colisión en un rango más amplio
+                    if (obstaclePosition > -10 && obstaclePosition < 60) {
+                        if (checkCollision(player, obstacle)) {
+                            clearInterval(moveObstacle);
+                            gameOver();
+                            return;
+                        }
                     }
                 }
 
                 obstacle.style.left = obstaclePosition + '%';
-            }, 20);
+            }, 16); // Aumentamos la frecuencia de actualización (aproximadamente 60 FPS)
         }
 
         function checkCollision(player, obstacle) {
@@ -444,9 +443,9 @@
             const obstacleRect = obstacle.getBoundingClientRect();
 
             return !(
-                playerRect.bottom < obstacleRect.top || 
-                playerRect.top > obstacleRect.bottom || 
-                playerRect.right < obstacleRect.left || 
+                playerRect.bottom < obstacleRect.top ||
+                playerRect.top > obstacleRect.bottom ||
+                playerRect.right < obstacleRect.left ||
                 playerRect.left > obstacleRect.right
             );
         }
@@ -458,7 +457,7 @@
             clearInterval(cloudInterval);
             finalScoreElement.textContent = score;
             gameOverScreen.style.display = 'block';
-            
+
             stopMusic();
             playSound('gameOver');
         }
@@ -468,28 +467,28 @@
             score = 0;
             scoreElement.textContent = '0';
             gameOverScreen.style.display = 'none';
-            
+
             const obstacles = document.querySelectorAll('.obstacle');
             obstacles.forEach(obstacle => {
                 if (obstacle.parentNode === gameContainer) {
                     gameContainer.removeChild(obstacle);
                 }
             });
-            
+
             const clouds = document.querySelectorAll('.cloud');
             clouds.forEach(cloud => {
                 if (cloud.parentNode === gameContainer) {
                     gameContainer.removeChild(cloud);
                 }
             });
-            
+
             startGame();
         }
 
         function startGame() {
             startScreen.style.display = 'none';
             gameStarted = true;
-            obstacleInterval = setInterval(createObstacle, 2000);
+            obstacleInterval = setInterval(createObstacle, 2500); // Aumentado de 2000 a 2500
             cloudInterval = setInterval(createCloud, 3000);
             createCloud();
             playMusic();
@@ -517,8 +516,5 @@
         // Initialize game
         startScreen.style.display = 'block';
     </script>
-</body>
-</html>
-</qodoArtifact>
 
   
