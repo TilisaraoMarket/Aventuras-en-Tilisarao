@@ -214,6 +214,35 @@
         .audio-controls button.muted {
             background: #f44336;
         }
+
+        /* Prize announcement styling */
+        .prize-announcement {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 3px solid #FF4500;
+            animation: pulse 2s infinite;
+        }
+
+        .prize-announcement h3 {
+            color: #FF0000;
+            font-size: 22px;
+            margin-bottom: 10px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .prize-announcement p {
+            color: #800000;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -245,6 +274,12 @@
 
         <div class="start-screen" id="startScreen">
             <h2>¡Bienvenido a Tilisarao!</h2>
+            
+            <div class="prize-announcement">
+                <h3>¡GRAN PREMIO!</h3>
+                <p>🏆 ¡El primer jugador en alcanzar 500 puntos ganará $10.000 pesos argentinos! 🏆</p>
+            </div>
+            
             <div class="instructions">
                 <p>Ayuda a nuestro héroe a superar los obstáculos</p>
                 <p>Presiona ESPACIO para saltar</p>
@@ -269,44 +304,29 @@
             gameOver: document.getElementById('gameOverSound')
         };
 
-        // Configure background music
-        audioElements.backgroundMusic.loop = true;
-
-        // Audio controls
         let isMusicMuted = false;
         let isSoundMuted = false;
 
-        // Initialize audio on first interaction
-        function initAudio() {
-            Object.values(audioElements).forEach(audio => {
-                audio.play().then(() => {
-                    audio.pause();
-                    audio.currentTime = 0;
-                }).catch(error => console.log('Audio initialization error:', error));
-            });
-            document.removeEventListener('click', initAudio);
+        // Configurar música de fondo
+        audioElements.backgroundMusic.loop = true;
+        audioElements.backgroundMusic.volume = 0.7;
+
+        // Función simple para reproducir música
+        function playBackgroundMusic() {
+            if (!isMusicMuted) {
+                audioElements.backgroundMusic.play().catch(error => {
+                    console.log('Error playing music:', error);
+                });
+            }
         }
 
-        document.addEventListener('click', initAudio);
-
-        function toggleMusic() {
-            isMusicMuted = !isMusicMuted;
-            audioElements.backgroundMusic.muted = isMusicMuted;
-            const button = document.getElementById('musicToggle');
-            button.textContent = isMusicMuted ? "🔇 Música" : "🎵 Música";
-            button.classList.toggle('muted', isMusicMuted);
+        // Función simple para detener música
+        function stopBackgroundMusic() {
+            audioElements.backgroundMusic.pause();
+            audioElements.backgroundMusic.currentTime = 0;
         }
 
-        function toggleSound() {
-            isSoundMuted = !isSoundMuted;
-            ['jump', 'point', 'gameOver'].forEach(sound => {
-                audioElements[sound].muted = isSoundMuted;
-            });
-            const button = document.getElementById('soundToggle');
-            button.textContent = isSoundMuted ? "🔇 Efectos" : "🔊 Efectos";
-            button.classList.toggle('muted', isSoundMuted);
-        }
-
+        // Función simple para reproducir efectos de sonido
         function playSound(soundName) {
             if (!isSoundMuted && audioElements[soundName]) {
                 audioElements[soundName].currentTime = 0;
@@ -316,18 +336,25 @@
             }
         }
 
-        function playMusic() {
-            if (!isMusicMuted) {
-                audioElements.backgroundMusic.currentTime = 0;
-                audioElements.backgroundMusic.play().catch(error => {
-                    console.log('Error playing background music:', error);
-                });
+        // Funciones de toggle para música y sonido
+        function toggleMusic() {
+            isMusicMuted = !isMusicMuted;
+            const button = document.getElementById('musicToggle');
+            button.textContent = isMusicMuted ? "🔇 Música" : "🎵 Música";
+            button.classList.toggle('muted', isMusicMuted);
+
+            if (isMusicMuted) {
+                stopBackgroundMusic();
+            } else if (gameStarted) {
+                playBackgroundMusic();
             }
         }
 
-        function stopMusic() {
-            audioElements.backgroundMusic.pause();
-            audioElements.backgroundMusic.currentTime = 0;
+        function toggleSound() {
+            isSoundMuted = !isSoundMuted;
+            const button = document.getElementById('soundToggle');
+            button.textContent = isSoundMuted ? "🔇 Efectos" : "🔊 Efectos";
+            button.classList.toggle('muted', isSoundMuted);
         }
 
         // Game variables
@@ -458,7 +485,7 @@
             finalScoreElement.textContent = score;
             gameOverScreen.style.display = 'block';
 
-            stopMusic();
+            stopBackgroundMusic();
             playSound('gameOver');
         }
 
@@ -488,10 +515,13 @@
         function startGame() {
             startScreen.style.display = 'none';
             gameStarted = true;
+            
+            // Intentar reproducir la música inmediatamente
+            playBackgroundMusic();
+            
             obstacleInterval = setInterval(createObstacle, 2500); // Aumentado de 2000 a 2500
             cloudInterval = setInterval(createCloud, 3000);
             createCloud();
-            playMusic();
         }
 
         // Event listeners
@@ -511,6 +541,14 @@
             }
             jump();
             event.preventDefault();
+        });
+
+        // Asegurar que el audio se inicialice cuando el documento esté listo
+        document.addEventListener('DOMContentLoaded', () => {
+            // Precarga de audio para mejorar la respuesta
+            for (let key in audioElements) {
+                audioElements[key].load();
+            }
         });
 
         // Initialize game
