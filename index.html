@@ -51,6 +51,34 @@
             transform: scale(0.8, 1.2);
         }
 
+        .bird {
+            width: 40px;
+            height: 30px;
+            position: absolute;
+            background-color: #4169E1;
+            border: 2px solid #000;
+            border-radius: 50% 70% 35% 70%;
+            z-index: 2;
+            animation: flapWings 0.6s infinite;
+        }
+
+        @keyframes flapWings {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(0.8); }
+        }
+
+        .bird::before {
+            content: '';
+            position: absolute;
+            width: 15px;
+            height: 8px;
+            background-color: #FFD700;
+            right: -5px;
+            top: 50%;
+            transform: translateY(-50%);
+            clip-path: polygon(0 50%, 100% 0, 100% 100%);
+        }
+
         @keyframes jumpWithSquash {
             0% { 
                 bottom: 20%;
@@ -281,9 +309,10 @@
             </div>
             
             <div class="instructions">
-                <p>Ayuda a nuestro héroe a superar los obstáculos</p>
+                <p>Ayuda a nuestro héroe a superar los obstáculos y pájaros</p>
                 <p>Presiona ESPACIO para saltar</p>
                 <p>En móviles, toca la pantalla</p>
+                <p>¡Cuidado con los pájaros que vuelan a diferentes alturas!</p>
             </div>
             <button onclick="startGame()">¡Comenzar!</button>
         </div>
@@ -371,6 +400,9 @@
         let obstacleInterval;
         let gameStarted = false;
         let cloudInterval;
+        let birdInterval;
+        let baseGameSpeed = 2;
+        let difficultyMultiplier = 1;
 
         // Obstacle speed configuration
         let baseObstacleSpeed = 2; // Increased from 1.5 to 2
@@ -439,7 +471,7 @@
                     return;
                 }
 
-                const currentSpeed = calculateObstacleSpeed();
+                const currentSpeed = calculateObstacleSpeed() * difficultyMultiplier;
                 obstaclePosition -= currentSpeed * 0.5; // Reducimos el incremento de posición para un movimiento más suave
 
                 if (obstaclePosition < -10) {
@@ -450,6 +482,9 @@
                     score++;
                     scoreElement.textContent = score;
                     playSound('point');
+                    
+                    // Aumentar la dificultad
+                    difficultyMultiplier = 1 + (score * 0.05);
                 } else {
                     // Comprobamos colisión en un rango más amplio
                     if (obstaclePosition > -10 && obstaclePosition < 60) {
@@ -463,6 +498,51 @@
 
                 obstacle.style.left = obstaclePosition + '%';
             }, 16); // Aumentamos la frecuencia de actualización (aproximadamente 60 FPS)
+        }
+
+        function createBird() {
+            if (gameIsOver || !gameStarted) return;
+
+            const bird = document.createElement('div');
+            bird.classList.add('bird');
+            
+            // Posición vertical aleatoria entre 30% y 80% de la altura
+            const randomHeight = Math.random() * 50 + 30;
+            bird.style.bottom = `${randomHeight}%`;
+            bird.style.left = '100%';
+            gameContainer.appendChild(bird);
+
+            let birdPosition = 100;
+            const birdSpeed = (baseGameSpeed + Math.random() * 2) * difficultyMultiplier;
+
+            const moveBird = setInterval(() => {
+                if (gameIsOver) {
+                    clearInterval(moveBird);
+                    return;
+                }
+
+                birdPosition -= birdSpeed * 0.5;
+
+                if (birdPosition < -10) {
+                    clearInterval(moveBird);
+                    if (bird.parentNode === gameContainer) {
+                        gameContainer.removeChild(bird);
+                    }
+                    score++;
+                    scoreElement.textContent = score;
+                    playSound('point');
+                } else {
+                    if (birdPosition > -10 && birdPosition < 60) {
+                        if (checkCollision(player, bird)) {
+                            clearInterval(moveBird);
+                            gameOver();
+                            return;
+                        }
+                    }
+                }
+
+                bird.style.left = birdPosition + '%';
+            }, 16);
         }
 
         function checkCollision(player, obstacle) {
@@ -482,6 +562,7 @@
             gameStarted = false;
             clearInterval(obstacleInterval);
             clearInterval(cloudInterval);
+            clearInterval(birdInterval);
             finalScoreElement.textContent = score;
             gameOverScreen.style.display = 'block';
 
@@ -492,20 +573,15 @@
         function resetGame() {
             gameIsOver = false;
             score = 0;
+            difficultyMultiplier = 1;
             scoreElement.textContent = '0';
             gameOverScreen.style.display = 'none';
 
-            const obstacles = document.querySelectorAll('.obstacle');
-            obstacles.forEach(obstacle => {
-                if (obstacle.parentNode === gameContainer) {
-                    gameContainer.removeChild(obstacle);
-                }
-            });
-
-            const clouds = document.querySelectorAll('.cloud');
-            clouds.forEach(cloud => {
-                if (cloud.parentNode === gameContainer) {
-                    gameContainer.removeChild(cloud);
+            // Limpiar todos los elementos
+            const elements = document.querySelectorAll('.obstacle, .bird, .cloud');
+            elements.forEach(element => {
+                if (element.parentNode === gameContainer) {
+                    gameContainer.removeChild(element);
                 }
             });
 
@@ -515,11 +591,13 @@
         function startGame() {
             startScreen.style.display = 'none';
             gameStarted = true;
+            difficultyMultiplier = 1;
             
             // Intentar reproducir la música inmediatamente
             playBackgroundMusic();
             
             obstacleInterval = setInterval(createObstacle, 2000); // Reduced from 2500 to 2000
+            birdInterval = setInterval(createBird, 3000);
             cloudInterval = setInterval(createCloud, 3000);
             createCloud();
         }
