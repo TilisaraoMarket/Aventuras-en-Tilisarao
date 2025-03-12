@@ -373,9 +373,9 @@
         let cloudInterval;
 
         // Obstacle speed configuration
-        let baseObstacleSpeed = 1.5; // Reducida de 2 a 1.5
-        let obstacleSpeedIncrement = 0.1; // Reducida de 0.2 a 0.1
-        let maxObstacleSpeed = 4; // Reducida de 8 a 4
+        let baseObstacleSpeed = 2; // Increased from 1.5 to 2
+        let obstacleSpeedIncrement = 0.15; // Increased from 0.1 to 0.15
+        let maxObstacleSpeed = 4;
 
         function calculateObstacleSpeed() {
             return Math.min(baseObstacleSpeed + (score * obstacleSpeedIncrement), maxObstacleSpeed);
@@ -519,7 +519,7 @@
             // Intentar reproducir la música inmediatamente
             playBackgroundMusic();
             
-            obstacleInterval = setInterval(createObstacle, 2500); // Aumentado de 2000 a 2500
+            obstacleInterval = setInterval(createObstacle, 2000); // Reduced from 2500 to 2000
             cloudInterval = setInterval(createCloud, 3000);
             createCloud();
         }
@@ -554,5 +554,5 @@
         // Initialize game
         startScreen.style.display = 'block';
     </script>
-
-  
+</body>
+</html>
